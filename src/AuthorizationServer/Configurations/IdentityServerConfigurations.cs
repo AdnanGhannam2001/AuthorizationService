@@ -21,6 +21,7 @@ public static class IdentityServerConfigurations
             RedirectUris = { "http://localhost:5002/signin-oidc" },
 
             AlwaysIncludeUserClaimsInIdToken = true,
+            AllowAccessTokensViaBrowser = true,
 
             AllowOfflineAccess = true,
             AllowedGrantTypes = GrantTypes.Code,

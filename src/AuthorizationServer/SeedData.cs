@@ -13,37 +13,47 @@ using AuthorizationServer.Configurations;
 
 namespace AuthorizationServer;
 
-public class SeedData {
-    public static void EnsureSeedData(WebApplication app) {
-        using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope()) {
+public class SeedData
+{
+    public static void EnsureSeedData(WebApplication app)
+    {
+        using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
+        {
             scope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.Migrate();
 
             var context = scope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
             context.Database.Migrate();
             
-            if (!context.Clients.Any()) {
-                foreach (var client in IdentityServerConfigurations.Clients) {
+            if (!context.Clients.Any())
+            {
+                foreach (var client in IdentityServerConfigurations.Clients)
+                {
                     context.Clients.Add(client.ToEntity());
                 }
                 context.SaveChanges();
             }
 
-            if (!context.IdentityResources.Any()) {
-                foreach (var resource in IdentityServerConfigurations.IdentityResources) {
+            if (!context.IdentityResources.Any())
+            {
+                foreach (var resource in IdentityServerConfigurations.IdentityResources)
+                {
                     context.IdentityResources.Add(resource.ToEntity());
                 }
                 context.SaveChanges();
             }
 
-            if (!context.ApiScopes.Any()) {
-                foreach (var resource in IdentityServerConfigurations.ApiScopes) {
+            if (!context.ApiScopes.Any())
+            {
+                foreach (var resource in IdentityServerConfigurations.ApiScopes)
+                {
                     context.ApiScopes.Add(resource.ToEntity());
                 }
                 context.SaveChanges();
             }
         }
 
-        using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope()) {
+        using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
+        {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             context.Database.Migrate();
 
@@ -56,21 +66,25 @@ public class SeedData {
             
             var users = userFaker.Generate(10);
 
-            foreach (var user in users) {
+            foreach (var user in users)
+            {
                 var result = userManager.CreateAsync(user, "Ad@123").Result;
 
-                if (!result.Succeeded) {
+                if (!result.Succeeded)
+                {
                     Log.Error("{0}", result.Errors.First().Description);
                     continue;
                 }
 
-                result = userManager.AddClaimsAsync(user, [
+                result = userManager.AddClaimsAsync(user,
+                    [
                         new Claim(JwtClaimTypes.Name, user.UserName!),
                         // TODO
                         new Claim(JwtClaimTypes.BirthDate, "1/1/2001"),
                     ]).Result;
 
-                if (!result.Succeeded) {
+                if (!result.Succeeded)
+                {
                     throw new Exception(result.Errors.First().Description);
                 }
 

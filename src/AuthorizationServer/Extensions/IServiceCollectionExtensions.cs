@@ -46,8 +46,8 @@ internal static class IServiceCollectionExtensions
     // TODO
     public static IServiceCollection ConfigureExternalAuth(this IServiceCollection services)
     {
-        services.AddAuthentication()
-            .AddGoogle(opts => { });
+        // services.AddAuthentication()
+        //     .AddGoogle(opts => { });
 
         return services;
     }
