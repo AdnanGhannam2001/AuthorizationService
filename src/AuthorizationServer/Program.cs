@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
 using AuthorizationServer;
 using AuthorizationServer.Extensions;
+using Google.Protobuf.WellKnownTypes;
 using Serilog;
+using SocialMediaService.WebApi.Protos;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -28,7 +30,9 @@ try
     builder.Services
         .ConfigureIdentityUser(usersDbConnectionString)
         .ConfigureIdentityServer(configsDbConnectionString)
-        .ConfigureExternalAuth();
+        .ConfigureExternalAuth()
+        .AddGrpcClient<ProfileService.ProfileServiceClient>(config
+            => config.Address = new Uri("https://localhost:7144")); // TODO: Get this from configs
 
     var app = builder.Build();
 
@@ -38,11 +42,12 @@ try
         app.UseDeveloperExceptionPage();
     }
 
+    app.UseHttpsRedirection();
     app.UseStaticFiles();
     app.UseRouting();
     app.UseIdentityServer();
     app.UseAuthorization();
-    
+
     app.MapRazorPages()
         .RequireAuthorization();
 

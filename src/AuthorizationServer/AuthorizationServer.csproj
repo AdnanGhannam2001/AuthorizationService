@@ -7,9 +7,19 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProtoBuf Include="../../../../packages/PR2.Contracts/Protos/profile-service.proto" GrpcServices="Client" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Bogus" Version="35.5.0" />
 		<PackageReference Include="Duende.IdentityServer.AspNetIdentity" Version="7.0.0" />
 		<PackageReference Include="Duende.IdentityServer.EntityFramework" Version="7.0.1" />
+		<PackageReference Include="Grpc.AspNetCore" Version="2.62.0" />
+		<PackageReference Include="Grpc.AspNetCore.Server.ClientFactory" Version="2.62.0" />
+		<PackageReference Include="Grpc.Tools" Version="2.62.0">
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		  <PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.0" />
 
