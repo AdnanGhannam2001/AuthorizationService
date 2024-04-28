@@ -10,85 +10,123 @@ using Duende.IdentityServer.EntityFramework.Mappers;
 using Bogus;
 using NanoidDotNet;
 using AuthorizationServer.Configurations;
+using SocialMediaService.WebApi.Protos;
+using Google.Protobuf.WellKnownTypes;
 
 namespace AuthorizationServer;
 
-public class SeedData
+public static class SeedData
 {
     public static void EnsureSeedData(WebApplication app)
     {
-        using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
+        var seedConfigurationsTask = SeedConfigurationsAsync(app);
+        var seedUsersTask = SeedUsersAsync(app);
+
+        Task.WhenAll(seedConfigurationsTask, seedUsersTask).Wait();
+    }
+
+    private static async Task SeedConfigurationsAsync(WebApplication app)
+    {
+        using var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
+
+        await scope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.MigrateAsync();
+
+        var context = scope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
+
+        await context.Database.MigrateAsync();
+
+        if (!await context.Clients.AnyAsync())
         {
-            scope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.Migrate();
-
-            var context = scope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
-            context.Database.Migrate();
-            
-            if (!context.Clients.Any())
+            foreach (var client in IdentityServerConfigurations.Clients)
             {
-                foreach (var client in IdentityServerConfigurations.Clients)
-                {
-                    context.Clients.Add(client.ToEntity());
-                }
-                context.SaveChanges();
+                await context.Clients.AddAsync(client.ToEntity());
             }
 
-            if (!context.IdentityResources.Any())
-            {
-                foreach (var resource in IdentityServerConfigurations.IdentityResources)
-                {
-                    context.IdentityResources.Add(resource.ToEntity());
-                }
-                context.SaveChanges();
-            }
-
-            if (!context.ApiScopes.Any())
-            {
-                foreach (var resource in IdentityServerConfigurations.ApiScopes)
-                {
-                    context.ApiScopes.Add(resource.ToEntity());
-                }
-                context.SaveChanges();
-            }
+            await context.SaveChangesAsync();
         }
 
-        using (var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope())
+        if (!await context.IdentityResources.AnyAsync())
         {
-            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            context.Database.Migrate();
-
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-            var userFaker = new Faker<ApplicationUser>()
-                .RuleFor(x => x.Id, _ => Nanoid.Generate(size: 15))
-                .RuleFor(x => x.UserName, f => f.Name.FirstName())
-                .RuleFor(x => x.Email, f => f.Internet.Email());
-            
-            var users = userFaker.Generate(10);
-
-            foreach (var user in users)
+            foreach (var resource in IdentityServerConfigurations.IdentityResources)
             {
-                var result = userManager.CreateAsync(user, "Ad@123").Result;
+                await context.IdentityResources.AddAsync(resource.ToEntity());
+            }
 
-                if (!result.Succeeded)
-                {
-                    Log.Error("{0}", result.Errors.First().Description);
-                    continue;
-                }
+            await context.SaveChangesAsync();
+        }
 
-                result = userManager.AddClaimsAsync(user,
-                    [
-                        new Claim(JwtClaimTypes.Name, user.UserName!),
-                        // TODO
-                        new Claim(JwtClaimTypes.BirthDate, "1/1/2001"),
-                    ]).Result;
+        if (!await context.ApiScopes.AnyAsync())
+        {
+            foreach (var resource in IdentityServerConfigurations.ApiScopes)
+            {
+                await context.ApiScopes.AddAsync(resource.ToEntity());
+            }
+
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private static async Task SeedUsersAsync(WebApplication app)
+    {
+        using var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
+
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await context.Database.MigrateAsync();
+
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var profileService = app.Services.GetRequiredService<ProfileService.ProfileServiceClient>();
+
+        var userFaker = new Faker<ApplicationUser>()
+            .RuleFor(x => x.Id, _ => Nanoid.Generate(size: 15))
+            .RuleFor(x => x.UserName, f => f.Name.FirstName())
+            .RuleFor(x => x.Email, f => f.Internet.Email());
+
+        var profileFaker = new Faker<CreateProfileRequest>()
+            .RuleFor(x => x.FirstName, f => f.Name.FirstName())
+            .RuleFor(x => x.LastName, f => f.Name.LastName())
+            .RuleFor(x => x.DateOfBirth, f =>
+            {
+                var start = new DateTime(1980, 1, 1);
+                var end = new DateTime(2010, 1, 1);
+                return Timestamp.FromDateTime(f.Date.Between(start, end).ToUniversalTime());
+            })
+            .RuleFor(x => x.Gender, f => f.PickRandom<Genders>())
+            .RuleFor(x => x.PhoneNumber, _ => "123-456-7891");
+
+        const int generated = 10;
+        var users = userFaker.Generate(generated);
+        var profiles = profileFaker.Generate(generated);
+
+        for (var i = 0; i < generated; i++)
+        {
+            using var transaction = await context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var result = await userManager.CreateAsync(users[i], "Ad@123");
 
                 if (!result.Succeeded)
                 {
                     throw new Exception(result.Errors.First().Description);
                 }
 
-                Log.Debug("{0} created", user.UserName);
+                profiles[i].Id = users[i].Id;
+                var profileResult = await profileService.CreateProfileAsync(profiles[i]);
+
+                result = await userManager.AddClaimsAsync(users[i], [new Claim(JwtClaimTypes.Name, users[i].UserName!)]);
+
+                if (!result.Succeeded)
+                {
+                    throw new Exception(result.Errors.First().Description);
+                }
+
+                await transaction.CommitAsync();
+                Log.Debug("{0} created", users[i].UserName);
+            }
+            catch (Exception exp)
+            {
+                await transaction.RollbackAsync();
+                Log.Error("{0}", exp.Message);
             }
         }
     }

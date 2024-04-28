@@ -1,3 +1,4 @@
+using AuthorizationServer.Data;
 using AuthorizationServer.Models;
 using Duende.IdentityServer.Models;
 using Duende.IdentityServer.Services;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using SocialMediaService.WebApi.Protos;
 
 namespace AuthorizationServer.Pages.Register;
 
@@ -14,19 +16,29 @@ public class Index : PageModel
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly ProfileService.ProfileServiceClient _client;
+
     private readonly IIdentityServerInteractionService _interaction;
+    private readonly ApplicationDbContext _context;
+
 
     [BindProperty]
     public InputModel Input { get; set; } = default!;
 
     public Index(
         IIdentityServerInteractionService interaction,
+        ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        ProfileService.ProfileServiceClient client)
     {
         _userManager = userManager;
         _interaction = interaction;
+        _context = context;
+
         _signInManager = signInManager;
+        _client = client;
+
     }
 
     public IActionResult OnGet(string? returnUrl)
@@ -66,39 +78,51 @@ public class Index : PageModel
         if (ModelState.IsValid)
         {
             var user = Input.ToApplicationUser();
-            var userResult = await _userManager.CreateAsync(user, Input.Password!);
+            using var transaction = await _context.Database.BeginTransactionAsync();
 
-            if (userResult.Succeeded)
+            try
             {
-                await _signInManager.SignInAsync(user, false);
-                
-                if (context != null)
+                var userResult = await _userManager.CreateAsync(user, Input.Password!);
+
+                await _client.CreateProfileAsync(new CreateProfileRequest()); // TODO: Get Data from 'Input'
+
+                if (userResult.Succeeded)
                 {
-                    if (context.IsNativeClient())
+                    await transaction.CommitAsync();
+                    await _signInManager.SignInAsync(user, false);
+                    
+                    if (context != null)
                     {
-                        return this.LoadingPage(Input.ReturnUrl);
+                        if (context.IsNativeClient())
+                        {
+                            return this.LoadingPage(Input.ReturnUrl);
+                        }
+
+                        return Redirect(Input.ReturnUrl ?? "~/");
                     }
 
-                    return Redirect(Input.ReturnUrl ?? "~/");
+                    if (Url.IsLocalUrl(Input.ReturnUrl))
+                    {
+                        return Redirect(Input.ReturnUrl);
+                    }
+                    else if (string.IsNullOrEmpty(Input.ReturnUrl))
+                    {
+                        return Redirect("~/");
+                    }
+                    else
+                    {
+                        throw new ArgumentException("invalid return URL");
+                    }
                 }
 
-                if (Url.IsLocalUrl(Input.ReturnUrl))
+                foreach (var error in userResult.Errors)
                 {
-                    return Redirect(Input.ReturnUrl);
-                }
-                else if (string.IsNullOrEmpty(Input.ReturnUrl))
-                {
-                    return Redirect("~/");
-                }
-                else
-                {
-                    throw new ArgumentException("invalid return URL");
+                    ModelState.AddModelError(error.Code, error.Description);
                 }
             }
-
-            foreach (var error in userResult.Errors)
+            catch (Exception)
             {
-                ModelState.AddModelError(error.Code, error.Description);
+                await transaction.RollbackAsync();
             }
         }
 
