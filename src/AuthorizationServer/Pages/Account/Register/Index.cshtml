@@ -1,5 +1,11 @@
 @page
-@model AuthorizationServer.Pages.Register.Index
+@model AuthorizationServer.Pages.Register.Index;
+@using Microsoft.AspNetCore.Mvc.Rendering;
+@using SocialMediaService.WebApi.Protos
+
+@{
+    var gendersList = new SelectList(Enum.GetNames(typeof(Genders)));
+}
 
 <div class="login-page">
     <div class="lead">
@@ -18,13 +24,40 @@
                     <label asp-for="Input.Username"></label>
                     <input class="form-control" placeholder="Username" asp-for="Input.Username" autofocus>
                 </div>
-                <div class="form-group">
-                    <label asp-for="Input.Password"></label>
-                    <input type="password" class="form-control" placeholder="Password" asp-for="Input.Password" autocomplete="off">
-                </div>
+
                 <div class="form-group">
                     <label asp-for="Input.Email"></label>
                     <input type="email" class="form-control" placeholder="Email" asp-for="Input.Email" />
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Input.FirstName"></label>
+                    <input class="form-control" placeholder="FirstName" asp-for="Input.FirstName" autofocus>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Input.LastName"></label>
+                    <input class="form-control" placeholder="LastName" asp-for="Input.LastName" autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Input.DateOfBirth"></label>
+                    <input class="form-control" placeholder="DateOfBirth" asp-for="Input.DateOfBirth" autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Input.PhoneNumber"></label>
+                    <input class="form-control" placeholder="PhoneNumber" asp-for="Input.PhoneNumber" autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Input.Gender"></label>
+                    <select class="form-control" placeholder="Gender" asp-for="Input.Gender" asp-items="gendersList" autofocus>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Input.Password"></label>
+                    <input type="password" class="form-control" placeholder="Password" asp-for="Input.Password" autocomplete="off">
                 </div>
 
                 <button class="btn btn-primary" name="Input.Button" value="create">Create</button>

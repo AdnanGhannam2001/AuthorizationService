@@ -2,6 +2,7 @@ using AuthorizationServer.Data;
 using AuthorizationServer.Models;
 using Duende.IdentityServer.Models;
 using Duende.IdentityServer.Services;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,10 +18,8 @@ public class Index : PageModel
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ProfileService.ProfileServiceClient _client;
-
     private readonly IIdentityServerInteractionService _interaction;
     private readonly ApplicationDbContext _context;
-
 
     [BindProperty]
     public InputModel Input { get; set; } = default!;
@@ -35,10 +34,8 @@ public class Index : PageModel
         _userManager = userManager;
         _interaction = interaction;
         _context = context;
-
         _signInManager = signInManager;
         _client = client;
-
     }
 
     public IActionResult OnGet(string? returnUrl)
@@ -78,17 +75,29 @@ public class Index : PageModel
         if (ModelState.IsValid)
         {
             var user = Input.ToApplicationUser();
+
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try
             {
                 var userResult = await _userManager.CreateAsync(user, Input.Password!);
 
-                await _client.CreateProfileAsync(new CreateProfileRequest()); // TODO: Get Data from 'Input'
-
                 if (userResult.Succeeded)
                 {
+                    var profile = new CreateProfileRequest() 
+                    {
+                        Id = user.Id,
+                        FirstName = Input.FirstName,
+                        LastName = Input.LastName,
+                        DateOfBirth = Timestamp.FromDateTime(Input.DateOfBirth.ToUniversalTime()),
+                        Gender = Input.Gender,
+                        PhoneNumber = Input.PhoneNumber ?? string.Empty
+                    };
+
+                    await _client.CreateProfileAsync(profile);
+
                     await transaction.CommitAsync();
+
                     await _signInManager.SignInAsync(user, false);
                     
                     if (context != null)

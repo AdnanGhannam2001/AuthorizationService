@@ -18,7 +18,7 @@ public static class IdentityServerConfigurations
             ClientName = "Web Api Client",
             ClientSecrets = { new Secret("511536EF-F270-4058-80CA-1C89C192F69A".Sha256()) },
 
-            RedirectUris = { "http://localhost:5002/signin-oidc" },
+            RedirectUris = { "https://localhost:7144/signin-oidc" },
 
             AlwaysIncludeUserClaimsInIdToken = true,
             AllowAccessTokensViaBrowser = true,

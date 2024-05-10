@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using AuthorizationServer;
 using AuthorizationServer.Extensions;
-using Google.Protobuf.WellKnownTypes;
 using Serilog;
 using SocialMediaService.WebApi.Protos;
 
