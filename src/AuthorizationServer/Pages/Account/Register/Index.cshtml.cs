@@ -3,10 +3,12 @@ using AuthorizationServer.Models;
 using Duende.IdentityServer.Models;
 using Duende.IdentityServer.Services;
 using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using PR2.Shared.Common;
 using SocialMediaService.WebApi.Protos;
 
 namespace AuthorizationServer.Pages.Register;
@@ -67,13 +69,13 @@ public class Index : PageModel
             }
         }
 
-        if (await _userManager.FindByNameAsync(Input.Username!) != null)
-        {
-            ModelState.AddModelError("Input.Username", "Invalid username");
-        }
-
         if (ModelState.IsValid)
         {
+            if (await _userManager.FindByNameAsync(Input.Username!) != null)
+            {
+                ModelState.AddModelError("Input.Username", "Invalid username");
+            }
+
             var user = Input.ToApplicationUser();
 
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -129,8 +131,17 @@ public class Index : PageModel
                     ModelState.AddModelError(error.Code, error.Description);
                 }
             }
-            catch (Exception)
+            catch (Exception exp)
             {
+                // TODO: Create a Method for This
+                if (exp is RpcException rpcException)
+                {
+                    foreach(var error in rpcException.Status.Detail.Split('|'))
+                    {
+                        ModelState.AddModelError(string.Empty, error);
+                    }
+                }
+
                 await transaction.RollbackAsync();
             }
         }

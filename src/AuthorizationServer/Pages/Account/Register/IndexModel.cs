@@ -21,7 +21,7 @@ public class InputModel
     [Required]
     public string Email { get; set; } = "";
 
-    public string PhoneNumber { get; set; } = "";
+    public string? PhoneNumber { get; set; }
 
     [Required]
     public Genders Gender { get; set; }
