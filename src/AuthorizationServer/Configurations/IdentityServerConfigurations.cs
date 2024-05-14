@@ -11,24 +11,4 @@ public static class IdentityServerConfigurations
     ];
 
     public static IEnumerable<ApiScope> ApiScopes => [];
-
-    public static IEnumerable<Client> Clients => [
-        new Client {
-            ClientId = "WEB_API",
-            ClientName = "Web Api Client",
-            ClientSecrets = { new Secret("511536EF-F270-4058-80CA-1C89C192F69A".Sha256()) },
-
-            RedirectUris = { "https://localhost:7144/signin-oidc" },
-
-            AlwaysIncludeUserClaimsInIdToken = true,
-            AllowAccessTokensViaBrowser = true,
-
-            AllowOfflineAccess = true,
-            AllowedGrantTypes = GrantTypes.Code,
-            AllowedScopes = {
-                IdentityServerConstants.StandardScopes.OpenId,
-                IdentityServerConstants.StandardScopes.Profile
-            }
-        }
-    ];
 }

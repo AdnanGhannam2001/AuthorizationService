@@ -12,6 +12,7 @@ using NanoidDotNet;
 using AuthorizationServer.Configurations;
 using SocialMediaService.WebApi.Protos;
 using Google.Protobuf.WellKnownTypes;
+using Duende.IdentityServer.Models;
 
 namespace AuthorizationServer;
 
@@ -37,8 +38,16 @@ public static class SeedData
 
         if (!await context.Clients.AnyAsync())
         {
-            foreach (var client in IdentityServerConfigurations.Clients)
+            var clients = new List<Client>();
+            app.Configuration.GetSection("Clients").Bind(clients);
+
+            foreach (var client in clients)
             {
+                foreach (var secret in client.ClientSecrets)
+                {
+                    secret.Value = secret.Value.Sha256();
+                }
+
                 await context.Clients.AddAsync(client.ToEntity());
             }
 

@@ -30,8 +30,11 @@ try
         .ConfigureIdentityUser(usersDbConnectionString)
         .ConfigureIdentityServer(configsDbConnectionString)
         .ConfigureExternalAuth()
-        .AddGrpcClient<ProfileService.ProfileServiceClient>(config
-            => config.Address = new Uri("https://localhost:7144")); // TODO: Get this from configs
+        .AddGrpcClient<ProfileService.ProfileServiceClient>(config =>
+        {
+            var host = builder.Configuration.GetValue<string>("Grpc:ProfileServiceHost") ?? throw new NullReferenceException("Grpc:ProfileServiceHost should be defined in configs");
+            config.Address = new Uri(host);
+        });
 
     var app = builder.Build();
 
