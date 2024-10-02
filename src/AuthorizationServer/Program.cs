@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using AuthorizationServer;
+using AuthorizationServer.Constants;
 using AuthorizationServer.Extensions;
 using Serilog;
 using SocialMediaService.WebApi.Protos;
@@ -19,8 +20,8 @@ try
         .Enrich.FromLogContext()
         .ReadFrom.Configuration(ctx.Configuration));
 
-    var usersDbConnectionString = builder.Configuration.GetConnectionString("UsersConnection");
-    var configsDbConnectionString = builder.Configuration.GetConnectionString("ConfigsConnection");
+    var usersDbConnectionString = builder.Configuration.GetConnectionString(DatabaseConstants.UsersConnectionStringName);
+    var configsDbConnectionString = builder.Configuration.GetConnectionString(DatabaseConstants.ConfigsConnectionStringName);
 
     Debug.Assert(usersDbConnectionString != null && configsDbConnectionString != null);
 
