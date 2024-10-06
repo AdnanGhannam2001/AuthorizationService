@@ -30,10 +30,12 @@ public static class SeedData
     {
         using var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
 
+        await scope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.EnsureCreatedAsync();
         await scope.ServiceProvider.GetRequiredService<PersistedGrantDbContext>().Database.MigrateAsync();
 
         var context = scope.ServiceProvider.GetRequiredService<ConfigurationDbContext>();
 
+        await context.Database.EnsureCreatedAsync();
         await context.Database.MigrateAsync();
 
         if (!await context.Clients.AnyAsync())
@@ -80,7 +82,10 @@ public static class SeedData
         using var scope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
 
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await context.Database.EnsureCreatedAsync();
         await context.Database.MigrateAsync();
+        await context.Users.ExecuteDeleteAsync();
 
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var profileService = app.Services.GetRequiredService<ProfileService.ProfileServiceClient>();
