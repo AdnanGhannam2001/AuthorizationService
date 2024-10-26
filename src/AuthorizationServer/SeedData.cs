@@ -109,6 +109,7 @@ public static class SeedData
 
         const int generated = 10;
         var users = userFaker.Generate(generated);
+        users.First().UserName = "Adnan";
         var profiles = profileFaker.Generate(generated);
 
         for (var i = 0; i < generated; i++)
