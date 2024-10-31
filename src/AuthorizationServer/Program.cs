@@ -64,7 +64,15 @@ try
     app.MapRazorPages()
         .RequireAuthorization();
 
-    if (args.Contains("--seed"))
+    if (args.Contains("-c") || args.Contains("--clear"))
+    {
+        Log.Information("Clearing database...");
+        SeedData.EnsureCleared(app);
+        Log.Information("Done clearing database. Exiting.");
+        return;
+    }
+
+    if (args.Contains("-s") || args.Contains("--seed"))
     {
         Log.Information("Seeding database...");
         SeedData.EnsureSeedData(app);
